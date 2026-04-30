@@ -1,51 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Lab | Space Invaders</title>
+    <title>AI Lab | Mobile Defender</title>
+    <!-- Essential for mobile: prevents accidental zooming and sets proper scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { background: #000; color: #00ff88; font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        canvas { border: 2px solid #00ff88; background: #000; box-shadow: 0 0 20px #00ff88; }
-        .ui { margin-top: 10px; text-align: center; }
-        kbd { background: #333; padding: 2px 6px; border-radius: 4px; color: #fff; }
+        body { background: #000; color: #00ff88; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; overflow: hidden; touch-action: none; }
+        canvas { border: 2px solid #00ff88; background: #000; max-width: 95vw; max-height: 50vh; margin-top: 10px; }
+        .controls { display: flex; width: 90%; justify-content: space-between; margin-top: 20px; padding-bottom: 20px; }
+        .btn { width: 80px; height: 80px; background: rgba(0, 255, 136, 0.2); border: 2px solid #00ff88; border-radius: 50%; color: #00ff88; font-weight: bold; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .btn:active { background: rgba(0, 255, 136, 0.5); }
+        .fire-btn { width: 100px; height: 100px; background: rgba(255, 0, 85, 0.2); border-color: #ff0055; color: #ff0055; }
     </style>
 </head>
 <body>
-    <h1>AI TOOLBOX DEFENDER</h1>
+    <h1>AI DEFENDER</h1>
     <canvas id="gameCanvas" width="600" height="400"></canvas>
-    <div class="ui">
-        <p>Score: <span id="score">0</span> | Use <kbd>A</kbd> <kbd>D</kbd> to Move & <kbd>SPACE</kbd> to Shoot</p>
+    
+    <!-- Virtual Buttons for iPhone -->
+    <div class="controls">
+        <div style="display: flex; gap: 20px;">
+            <div id="leftBtn" class="btn">LEFT</div>
+            <div id="rightBtn" class="btn">RIGHT</div>
+        </div>
+        <div id="fireBtn" class="btn fire-btn">FIRE</div>
     </div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const scoreElement = document.getElementById('score');
-
-    let score = 0;
-    let gameActive = true;
-
-    // Player Object
-    const player = { x: canvas.width / 2 - 15, y: canvas.height - 30, w: 30, h: 20, speed: 5 };
+    const player = { x: canvas.width / 2 - 15, y: canvas.height - 30, w: 30, h: 20, speed: 7 };
     const bullets = [];
     const invaders = [];
+    const keys = { a: false, d: false };
 
-    // Keys state
-    const keys = { a: false, d: false, space: false };
-
-    // Create Invaders
+    // Setup Invaders
     for(let r=0; r<3; r++) {
         for(let c=0; c<10; c++) {
             invaders.push({ x: c * 50 + 50, y: r * 40 + 50, w: 30, h: 20, alive: true });
         }
     }
 
-    window.addEventListener('keydown', e => { 
+    // TOUCH CONTROLS
+    const handleTouch = (id, state) => {
+        if (id === 'leftBtn') keys.a = state;
+        if (id === 'rightBtn') keys.d = state;
+    };
+
+    ['leftBtn', 'rightBtn'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); handleTouch(id, true); });
+        el.addEventListener('touchend', (e) => { e.preventDefault(); handleTouch(id, false); });
+    });
+
+    document.getElementById('fireBtn').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        bullets.push({ x: player.x + player.w/2, y: player.y, speed: 8 });
+    });
+
+    // KEYBOARD CONTROLS (Keep for Desktop)
+    window.addEventListener('keydown', e => {
         if(e.code === 'KeyA') keys.a = true;
         if(e.code === 'KeyD') keys.d = true;
-        if(e.code === 'Space') {
-            bullets.push({ x: player.x + player.w/2, y: player.y, speed: 7 });
-            e.preventDefault(); // Stop page from jumping
-        }
+        if(e.code === 'Space') { bullets.push({ x: player.x + player.w/2, y: player.y, speed: 8 }); e.preventDefault(); }
     });
     window.addEventListener('keyup', e => {
         if(e.code === 'KeyA') keys.a = false;
@@ -53,8 +70,6 @@
     });
 
     function update() {
-        if(!gameActive) return;
-
         if(keys.a && player.x > 0) player.x -= player.speed;
         if(keys.d && player.x < canvas.width - player.w) player.x += player.speed;
 
@@ -69,41 +84,22 @@
                 if(b.x > inv.x && b.x < inv.x + inv.w && b.y > inv.y && b.y < inv.y + inv.h) {
                     inv.alive = false;
                     bullets.splice(bi, 1);
-                    score += 10;
-                    scoreElement.innerText = score;
                 }
             });
         });
-
-        if(invaders.every(i => !i.alive)) {
-            alert("Victory! AI Tools Secured.");
-            location.reload();
-        }
     }
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Draw Player (The "User")
         ctx.fillStyle = '#00ff88';
         ctx.fillRect(player.x, player.y, player.w, player.h);
-
-        // Draw Bullets
         ctx.fillStyle = '#fff';
         bullets.forEach(b => ctx.fillRect(b.x, b.y, 2, 10));
-
-        // Draw Invaders (The "Bugs")
         ctx.fillStyle = '#ff0055';
-        invaders.forEach(inv => {
-            if(inv.alive) ctx.fillRect(inv.x, inv.y, inv.w, inv.h);
-        });
-
-        requestAnimationFrame(() => {
-            update();
-            draw();
-        });
+        invaders.forEach(inv => { if(inv.alive) ctx.fillRect(inv.x, inv.y, inv.w, inv.h); });
+        update();
+        requestAnimationFrame(draw);
     }
-
     draw();
 </script>
 </body>
